@@ -5,3 +5,5 @@ dist/
 *.map
 .env
 .DS_Store
+
+/n8n-nodes-unraid-*
