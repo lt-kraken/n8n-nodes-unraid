@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-unraid",
   "version": "1.0.0",
-  "description": "n8n community node for the Unraid API — manage Docker containers, VMs, array and disk health, notifications, and system metrics via GraphQL.",
+  "description": "n8n community node for the Unraid API - manage Docker containers, VMs, array and disk health, notifications, and system metrics via GraphQL.",
   "keywords": [
     "n8n-community-node-package"
   ],
@@ -22,16 +22,20 @@
     "node": ">=22.0"
   },
   "main": "index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "n8n-node build",
-    "dev": "n8n-node dev",
-    "lint": "n8n-node lint",
-    "lint:fix": "n8n-node lint --fix",
+    "build": "tsc && cp nodes/Unraid/unraid.svg dist/nodes/Unraid/unraid.svg",
+    "dev": "tsc --watch",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "prepublishOnly": "npm run build"
   },
   "n8n": {
     "n8nNodesApiVersion": 1,
-    "strict": true,
     "credentials": [
       "dist/credentials/UnraidApi.credentials.js"
     ],

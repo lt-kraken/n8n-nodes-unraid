@@ -25,8 +25,15 @@ export class UnraidApi implements ICredentialType {
 			type: 'string',
 			typeOptions: { password: true },
 			default: '',
-			description: 'API key from Unraid Settings → Management Access → API Key',
+			description: 'API key from Unraid Settings > Management Access > API Key',
 			required: true,
+		},
+		{
+			displayName: 'Allow Unauthorized Certificates',
+			name: 'allowUnauthorizedCerts',
+			type: 'boolean',
+			default: false,
+			description: 'Whether to allow self-signed or otherwise invalid SSL certificates. Enable this if your Unraid server uses a self-signed certificate.',
 		},
 	];
 
@@ -45,6 +52,7 @@ export class UnraidApi implements ICredentialType {
 			url: '={{$credentials.serverUrl.replace(/\\/$/, "")}}/graphql',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ query: '{ info { os { platform } } }' }),
+			skipSslCertificateValidation: '={{$credentials.allowUnauthorizedCerts}}',
 		},
 	};
 }

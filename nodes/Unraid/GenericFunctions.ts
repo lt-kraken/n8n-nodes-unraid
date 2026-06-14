@@ -15,6 +15,7 @@ export async function unraidApiRequest(
 		headers: { 'Content-Type': 'application/json' },
 		body: { query, variables },
 		json: true,
+		skipSslCertificateValidation: (credentials.allowUnauthorizedCerts as boolean) ?? false,
 	};
 
 	const response = await this.helpers.httpRequestWithAuthentication.call(
