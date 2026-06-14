@@ -30,8 +30,10 @@
   "scripts": {
     "build": "tsc && shx cp nodes/Unraid/unraid.svg dist/nodes/Unraid/unraid.svg",
     "dev": "tsc --watch",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepack": "npm run build",
     "prepublishOnly": "npm run build"
   },
@@ -45,13 +47,18 @@
     ]
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@n8n/node-cli": "*",
     "@types/node": "^25.9.3",
     "eslint": "^9.0.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.6",
+    "jsonc-eslint-parser": "^3.1.0",
     "n8n-workflow": "^2.16.0",
     "prettier": "^3.0.0",
     "shx": "^0.4.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^4.1.8"
   },
   "peerDependencies": {
     "n8n-workflow": "*"
