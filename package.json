@@ -1,0 +1,53 @@
+{
+  "name": "n8n-nodes-unraid",
+  "version": "1.0.0",
+  "description": "n8n community node for the Unraid API — manage Docker containers, VMs, array and disk health, notifications, and system metrics via GraphQL.",
+  "keywords": [
+    "n8n-community-node-package"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/lt-kraken/n8n-nodes-unraid",
+  "bugs": {
+    "url": "https://github.com/lt-kraken/n8n-nodes-unraid/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lt-kraken/n8n-nodes-unraid.git"
+  },
+  "author": {
+    "name": "lt-kraken",
+    "url": "https://github.com/lt-kraken"
+  },
+  "engines": {
+    "node": ">=22.0"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "n8n-node build",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
+    "prepublishOnly": "npm run build"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": true,
+    "credentials": [
+      "dist/credentials/UnraidApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Unraid/Unraid.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "*",
+    "@types/node": "^25.9.3",
+    "eslint": "^9.0.0",
+    "n8n-workflow": "^2.16.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
