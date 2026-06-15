@@ -148,6 +148,41 @@ describe('Unraid.execute — Notification', () => {
 	});
 });
 
+describe('Unraid.execute — System UPS', () => {
+	it('getUpsStatus returns the devices when a UPS is present', async () => {
+		const { promise } = run(
+			{ resource: 'system', operation: 'getUpsStatus' },
+			{ data: { upsDevices: [{ id: 'ups1', status: 'OnLine' }] } },
+		);
+		const [out] = await promise;
+		expect(out[0].json).toEqual({ id: 'ups1', status: 'OnLine' });
+	});
+
+	it('getUpsStatus normalises a "no UPS" API error to { connected: false }', async () => {
+		const http = vi
+			.fn()
+			.mockRejectedValue(new Error('Failed to get UPS data: No UPS data returned from apcaccess'));
+		const ctx = makeContext({ resource: 'system', operation: 'getUpsStatus' }, http);
+		const [out] = await Unraid.prototype.execute.call(ctx as never);
+		expect(out[0].json).toEqual({ connected: false });
+	});
+
+	it('getUpsStatus returns { connected: false } when the device list is empty', async () => {
+		const { promise } = run(
+			{ resource: 'system', operation: 'getUpsStatus' },
+			{ data: { upsDevices: [] } },
+		);
+		const [out] = await promise;
+		expect(out[0].json).toEqual({ connected: false });
+	});
+
+	it('getUpsStatus rethrows unrelated errors', async () => {
+		const http = vi.fn().mockRejectedValue(new Error('network down'));
+		const ctx = makeContext({ resource: 'system', operation: 'getUpsStatus' }, http, false);
+		await expect(Unraid.prototype.execute.call(ctx as never)).rejects.toThrow('network down');
+	});
+});
+
 describe('Unraid.execute — control level gating', () => {
 	const okDocker = { data: { docker: { start: { id: 'docker:1', state: 'RUNNING' } } } };
 	const okVm = { data: { vm: { forceStop: true } } };

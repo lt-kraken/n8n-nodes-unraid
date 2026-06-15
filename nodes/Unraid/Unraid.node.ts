@@ -194,23 +194,40 @@ export class Unraid implements INodeType {
 
 				// ── System ────────────────────────────────────────────────────────────
 				else if (resource === 'system') {
-					const query = systemQueries[operation as keyof typeof systemQueries];
-					const data = await unraidApiRequest.call(this, query);
-
-					if (operation === 'getOnlineStatus') {
-						results = [{ online: data.online ?? false }];
-					} else if (operation === 'getRegistration') {
-						results = [data.registration as IDataObject ?? {}];
-					} else if (operation === 'getServerStatus') {
-						results = (data.servers as IDataObject[]) ?? [];
-					} else if (operation === 'getUpsStatus') {
-						results = (data.upsDevices as IDataObject[]) ?? [];
+					if (operation === 'getUpsStatus') {
+						// Unraid's API throws ("No UPS data returned from apcaccess") instead of
+						// returning an empty list when no UPS is attached. Normalise that into a
+						// plain not-connected result so consumers (including AI Agents) get data,
+						// not an error. Genuine failures are still surfaced.
+						try {
+							const data = await unraidApiRequest.call(this, systemQueries.getUpsStatus);
+							const devices = (data.upsDevices as IDataObject[]) ?? [];
+							results = devices.length ? devices : [{ connected: false }];
+						} catch (error) {
+							const message = (error as Error)?.message ?? '';
+							if (/ups|apcaccess/i.test(message)) {
+								results = [{ connected: false }];
+							} else {
+								throw error;
+							}
+						}
 					} else {
-						const keyMap: Record<string, string> = {
-							getInfo: 'info', getMetrics: 'metrics',
-							getFlashInfo: 'flash', getConfig: 'config',
-						};
-						results = [data[keyMap[operation]] as IDataObject ?? {}];
+						const query = systemQueries[operation as keyof typeof systemQueries];
+						const data = await unraidApiRequest.call(this, query);
+
+						if (operation === 'getOnlineStatus') {
+							results = [{ online: data.online ?? false }];
+						} else if (operation === 'getRegistration') {
+							results = [data.registration as IDataObject ?? {}];
+						} else if (operation === 'getServerStatus') {
+							results = (data.servers as IDataObject[]) ?? [];
+						} else {
+							const keyMap: Record<string, string> = {
+								getInfo: 'info', getMetrics: 'metrics',
+								getFlashInfo: 'flash', getConfig: 'config',
+							};
+							results = [data[keyMap[operation]] as IDataObject ?? {}];
+						}
 					}
 				}
 
