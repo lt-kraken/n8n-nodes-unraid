@@ -15,40 +15,48 @@ fresh test pass so the history is preserved.
 
 ## Environment
 
+Versions and host identifiers are intentionally left blank to avoid publishing details
+about a specific server. The Read operations below were confirmed against a live Unraid
+host using the self-asserting workflow ([`examples/read-verification.workflow.json`](./examples/read-verification.workflow.json)),
+which checks the actual result of each read and records nothing about the server.
+
+- [x] Unraid GraphQL API enabled and reachable
 - [ ] n8n version: `____`
 - [ ] Node.js version: `____`
 - [ ] Unraid version: `____`
-- [ ] Unraid GraphQL API enabled and reachable
-- [ ] Date verified: `____` · Verified by: `____`
+- [x] Date verified: `2026-06-15` · Verified by: `maintainer`
 
 ## Connection & credentials
 
-- [ ] Credential **Test** succeeds with a valid API key
+- [x] Credential authenticates with a valid API key (every live read call succeeded)
 - [ ] Invalid API key / wrong URL fails cleanly with a readable error
 - [ ] **Allow Unauthorized Certificates** works against an HTTPS Unraid using a self-signed cert
 - [ ] Server URL with a trailing slash is handled (no double `//graphql`)
 
 ## Read operations (control level: Read)
 
-- [ ] Docker — Get Many
-- [ ] Docker — Get
-- [ ] Array — Get Status
-- [ ] Array — Get Disks
-- [ ] Array — Get Shares
-- [ ] Array — Get Parity History
-- [ ] Disk — Get Many
-- [ ] System — Get Info
-- [ ] System — Get Metrics
-- [ ] System — Get Online Status
-- [ ] System — Get UPS Status
-- [ ] System — Get Server Status
-- [ ] System — Get Flash Info
-- [ ] System — Get Registration
-- [ ] System — Get Config
-- [ ] VM — Get Many
-- [ ] Notification — Get Many (Unread / Archived / All)
-- [ ] Notification — Get Many honours importance filter, limit and offset
-- [ ] Notification — Get Overview
+Verified end-to-end by the self-asserting workflow (assertions check each result's shape,
+not its values — so no server specifics are recorded).
+
+- [x] Docker — Get Many
+- [x] Docker — Get _(by a live container ID; returned id matches)_
+- [x] Array — Get Status
+- [x] Array — Get Disks
+- [x] Array — Get Shares
+- [x] Array — Get Parity History
+- [x] Disk — Get Many
+- [x] System — Get Info
+- [x] System — Get Metrics
+- [x] System — Get Online Status
+- [x] System — Get UPS Status _(no UPS attached → normalised to `{ connected: false }`)_
+- [x] System — Get Server Status
+- [x] System — Get Flash Info
+- [x] System — Get Registration
+- [x] System — Get Config
+- [x] VM — Get Many _(empty list when no VMs defined — path verified)_
+- [ ] Notification — Get Many (Unread / Archived / All) _(Unread verified; Archived/All pending)_
+- [ ] Notification — Get Many honours importance filter, limit and offset _(limit/offset verified; importance pending)_
+- [x] Notification — Get Overview
 
 ## Control operations (control level: Control)
 
