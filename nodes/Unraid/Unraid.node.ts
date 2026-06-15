@@ -97,19 +97,32 @@ export class Unraid implements INodeType {
 		const credentials = await this.getCredentials('unraidApi');
 		const credLevel = (credentials.maxControlLevel as ControlLevel) ?? 'read';
 
-		// Unraid's docker mutation resolver returns the container by re-fetching it after the
-		// action; for stop/pause that lookup can fail ("... not found after stopping") even
-		// though the action itself succeeded. Treat that post-action lookup failure as success.
+		// Unraid's docker mutation reports its result by re-fetching the container after the
+		// action, which can throw ("... not found after stopping/starting") even on success.
+		// On that failure we do NOT assume success: we re-list the containers and confirm the
+		// container actually reached the expected state (running for start/unpause, not-running
+		// for stop/pause). This stops a failed start from being reported as a success.
 		const runDockerMutation = async (mutation: string, containerId: string, op: string): Promise<IDataObject> => {
 			try {
 				const data = await unraidApiRequest.call(this, mutation, { id: containerId });
-				return ((data.docker as IDataObject)?.[op] as IDataObject) ?? { id: containerId, operation: op, success: true };
+				const result = (data.docker as IDataObject)?.[op] as IDataObject | undefined;
+				if (result && result.state) return result;
 			} catch (error) {
-				if (/not found after/i.test((error as Error)?.message ?? '')) {
-					return { id: containerId, operation: op, success: true };
-				}
-				throw error;
+				if (!/not found after/i.test((error as Error)?.message ?? '')) throw error;
 			}
+			// Re-fetch failed or returned nothing usable: confirm the real state.
+			const listData = await unraidApiRequest.call(this, dockerQueries.getMany);
+			const containers = ((listData.docker as IDataObject)?.containers as IDataObject[]) ?? [];
+			const container = containers.find((c) => c.id === containerId || (c.names as string[])?.includes(containerId));
+			const state = (container?.state as string) ?? 'NOT_FOUND';
+			const mustRun = op === 'start' || op === 'unpause';
+			if (mustRun ? state !== 'RUNNING' : state === 'RUNNING') {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Container ${containerId} did not reach the expected state after "${op}" (current state: ${state}).`,
+				);
+			}
+			return container ?? { id: containerId, operation: op, success: true, state };
 		};
 
 		for (let i = 0; i < items.length; i++) {

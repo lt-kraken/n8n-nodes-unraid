@@ -84,18 +84,42 @@ describe('Unraid.execute — Docker', () => {
 		expect(http.mock.calls[0][1].body.variables).toEqual({ id: 'docker:1' });
 	});
 
-	it('stop treats a post-action "not found after stopping" error as success', async () => {
-		const http = vi.fn().mockRejectedValue(new Error('Container a3cf5a0bbedc not found after stopping'));
+	it('stop is confirmed via state lookup when the API re-fetch throws', async () => {
+		const http = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('Container a3cf5a0bbedc not found after stopping'))
+			.mockResolvedValueOnce({ data: { docker: { containers: [{ id: 'docker:1', state: 'EXITED' }] } } });
 		const ctx = makeContext({ resource: 'docker', operation: 'stop', containerId: 'docker:1' }, http);
 		const [out] = await Unraid.prototype.execute.call(ctx as never);
-		expect(out[0].json).toEqual({ id: 'docker:1', operation: 'stop', success: true });
+		expect(out[0].json).toEqual({ id: 'docker:1', state: 'EXITED' });
 	});
 
-	it('start treats a post-action "not found after starting" error as success', async () => {
-		const http = vi.fn().mockRejectedValue(new Error('Container a3cf5a0bbedc not found after starting'));
+	it('stop fails if the container is still running after the re-fetch error', async () => {
+		const http = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('Container a3cf5a0bbedc not found after stopping'))
+			.mockResolvedValueOnce({ data: { docker: { containers: [{ id: 'docker:1', state: 'RUNNING' }] } } });
+		const ctx = makeContext({ resource: 'docker', operation: 'stop', containerId: 'docker:1' }, http, false);
+		await expect(Unraid.prototype.execute.call(ctx as never)).rejects.toThrow(/did not reach the expected state/);
+	});
+
+	it('start succeeds only when the container is running afterward', async () => {
+		const http = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('Container a3cf5a0bbedc not found after starting'))
+			.mockResolvedValueOnce({ data: { docker: { containers: [{ id: 'docker:1', state: 'RUNNING' }] } } });
 		const ctx = makeContext({ resource: 'docker', operation: 'start', containerId: 'docker:1' }, http);
 		const [out] = await Unraid.prototype.execute.call(ctx as never);
-		expect(out[0].json).toEqual({ id: 'docker:1', operation: 'start', success: true });
+		expect(out[0].json).toEqual({ id: 'docker:1', state: 'RUNNING' });
+	});
+
+	it('start reports failure when the container fails to start (not running afterward)', async () => {
+		const http = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('Container a3cf5a0bbedc not found after starting'))
+			.mockResolvedValueOnce({ data: { docker: { containers: [{ id: 'docker:1', state: 'EXITED' }] } } });
+		const ctx = makeContext({ resource: 'docker', operation: 'start', containerId: 'docker:1' }, http, false);
+		await expect(Unraid.prototype.execute.call(ctx as never)).rejects.toThrow(/did not reach the expected state/);
 	});
 
 	it('start still surfaces unrelated errors', async () => {
