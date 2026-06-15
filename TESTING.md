@@ -68,20 +68,23 @@ not its values — so no server specifics are recorded).
 - [x] Docker — Restart
 - [x] Docker — Pause
 - [x] Docker — Unpause
-- [ ] Array — Start — gating verified (blocked below Control). Live start-from-stopped is not testable from a same-host n8n: whenever the array is stopped, Docker (and n8n) is down, so n8n can't issue the start. Mutation unchanged since 1.0.1.
+- [ ] Array — Start 
+    > gating verified (blocked below Control). Live start-from-stopped is not testable from a same-host n8n: whenever the array is stopped, Docker (and n8n) is down, so n8n can't issue the start. Mutation unchanged since 1.0.1.
 - [x] VM — Start
 - [x] VM — Stop
 - [x] VM — Restart
 - [x] VM — Pause
 - [x] VM — Resume
-- [ ] VM — Reboot — node behaves correctly; on this guest the API returned "graceful shutdown failed, please force stop" (guest OS didn't honour the ACPI request). Re-test on a guest with ACPI / guest agent enabled.
+- [ ] VM — Reboot
+    > node behaves correctly; on this guest the API returned "graceful shutdown failed, please force stop" (guest OS didn't honour the ACPI request). Re-test on a guest with ACPI / guest agent enabled.
 - [x] Notification — Create (appears in the Unraid UI)
 - [x] Notification — Archive
 - [x] Notification — Archive All
 
 ## Destructive operations (control level: Full — test on disposable targets)
 
-- [x] Array — Stop — verified live: the array stops **gracefully**. On a same-host n8n the node reports a **504 / gateway timeout** even though the stop succeeds, because the n8n container goes offline before the response returns — so there's no clean success and no follow-up Start in the same workflow. Gating also verified (blocked below Full; no mutation sent when blocked). Identical to the Unraid UI Stop button; intended for remote orchestration or as the final step of a UPS shutdown.
+- [x] Array — Stop
+    > verified live: the array stops **gracefully**. On a same-host n8n the node reports a **504 / gateway timeout** even though the stop succeeds, because the n8n container goes offline before the response returns — so there's no clean success and no follow-up Start in the same workflow. Gating also verified (blocked below Full; no mutation sent when blocked). Identical to the Unraid UI Stop button; intended for remote orchestration or as the final step of a UPS shutdown.
 - [x] VM — Force Stop (on a disposable VM)
 - [x] Notification — Delete
 
