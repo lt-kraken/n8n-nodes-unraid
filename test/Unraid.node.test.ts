@@ -166,6 +166,19 @@ describe('Unraid.execute — Notification', () => {
 		await promise;
 		expect(http.mock.calls[0][1].body.variables.filter.importance).toBe('ALERT');
 	});
+
+	it('getMany with "All" fans out to UNREAD and ARCHIVE and concatenates', async () => {
+		const http = vi.fn().mockResolvedValue({ data: { notifications: { list: [{ id: 'n1' }] } } });
+		const ctx = makeContext(
+			{ resource: 'notification', operation: 'getMany', notificationType: 'ALL', importance: '', limit: 50, offset: 0 },
+			http,
+		);
+		const [out] = await Unraid.prototype.execute.call(ctx as never);
+		expect(http).toHaveBeenCalledTimes(2);
+		expect(http.mock.calls[0][1].body.variables.filter.type).toBe('UNREAD');
+		expect(http.mock.calls[1][1].body.variables.filter.type).toBe('ARCHIVE');
+		expect(out.map((r) => r.json)).toEqual([{ id: 'n1' }, { id: 'n1' }]);
+	});
 });
 
 describe('Unraid.execute — System UPS', () => {

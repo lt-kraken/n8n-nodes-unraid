@@ -28,7 +28,7 @@ export const notificationFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['notification'], operation: ['getMany'] } },
 		options: [
 			{ name: 'Unread',   value: 'UNREAD' },
-			{ name: 'Archived', value: 'ARCHIVED' },
+			{ name: 'Archived', value: 'ARCHIVE' },
 			{ name: 'All',      value: 'ALL' },
 		],
 		default: 'UNREAD',
@@ -132,7 +132,7 @@ export const notificationFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['notification'], operation: ['delete'] } },
 		options: [
 			{ name: 'Unread',   value: 'UNREAD' },
-			{ name: 'Archived', value: 'ARCHIVED' },
+			{ name: 'Archived', value: 'ARCHIVE' },
 		],
 		default: 'UNREAD',
 		description: 'Where the notification currently lives',

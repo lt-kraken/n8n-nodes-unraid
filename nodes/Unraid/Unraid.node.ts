@@ -275,10 +275,18 @@ export class Unraid implements INodeType {
 						const importance = this.getNodeParameter('importance', i) as string;
 						const limit      = this.getNodeParameter('limit', i) as number;
 						const offset     = this.getNodeParameter('offset', i) as number;
-						const filter: IDataObject = { type, offset, limit };
-						if (importance) filter.importance = importance;
-						const data = await unraidApiRequest.call(this, notificationQueries.getMany, { filter });
-						results = ((data.notifications as IDataObject)?.list as IDataObject[]) ?? [];
+
+						// The Unraid NotificationType enum only has UNREAD and ARCHIVE; "ALL" is not a real
+						// value, so fan out to both and concatenate the results.
+						const types = type === 'ALL' ? ['UNREAD', 'ARCHIVE'] : [type];
+						const collected: IDataObject[] = [];
+						for (const t of types) {
+							const filter: IDataObject = { type: t, offset, limit };
+							if (importance) filter.importance = importance;
+							const data = await unraidApiRequest.call(this, notificationQueries.getMany, { filter });
+							collected.push(...(((data.notifications as IDataObject)?.list as IDataObject[]) ?? []));
+						}
+						results = collected;
 					}
 
 					else if (operation === 'getOverview') {
