@@ -107,18 +107,16 @@ not its values — so no server specifics are recorded).
 
 ## AI Agent (`usableAsTool`)
 
-The control-level gate runs inside the node's `execute()`, so it applies identically no
-matter who invokes the node — a manual run or an AI Agent. The live run below confirms the
-agent's tool call goes through the node's `execute()` (the real Unraid node ran and returned
-live data), which is exactly where the gate lives — so the "blocked / honours ceiling" rows
-hold for the agent path too, and are additionally covered by the gating unit tests.
+Verified live with an n8n AI Agent (Ollama `minimax-m3:cloud`), with the Unraid node wrapped
+in a `toolWorkflow` (a community node can't be attached as `ai_tool` directly). The gate runs
+inside the node's `execute()`, so it applies to the agent path identically — confirmed below.
 
 - [x] Node attached to an AI Agent runs a read op end-to-end
-    > Verified live: an n8n AI Agent (Ollama `minimax-m3:cloud`) with the Unraid node wrapped in a `toolWorkflow` (a community node can't be attached as `ai_tool` directly) made a real tool call (`tool_calls.completed: 1`); the node returned the live container list and the agent summarised it accurately.
+    > Agent made a real tool call (`tool_calls.completed: 1`); the Unraid node returned the live container list and the agent summarised it accurately.
 - [x] Agent tool node pinned to **Control** is blocked from a destructive op
-    > by construction: the agent's tool call runs the node's `execute()` (confirmed by the live run above), where the level gate is enforced — unit-tested in `Unraid.execute — control level gating`.
+    > Live: at credential level `Control`, the agent created a notification (allowed) then tried to delete it. The delete was refused with the gate error: _Operation "delete" on "notification" requires control level "full", but the effective level is "control"._ The agent surfaced the error and the notification was not deleted.
 - [x] Agent honours the credential ceiling even when asked to do more
-    > by construction: `maxControlLevel` is read from the credential in `execute()` and applied as `min(node, credential)` on every call regardless of caller — unit-tested.
+    > Same live run: explicitly asked to delete, the agent could not exceed the credential's `Control` ceiling — the destructive op required `Full` and was blocked in `execute()`. Also covered by the gating unit tests.
 
 ## Robustness
 
