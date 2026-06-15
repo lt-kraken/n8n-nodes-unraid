@@ -21,9 +21,9 @@ host using the self-asserting workflow ([`examples/read-verification.workflow.js
 which checks the actual result of each read and records nothing about the server.
 
 - [x] Unraid GraphQL API enabled and reachable
-- [ ] n8n version: `____`
-- [ ] Node.js version: `____`
-- [ ] Unraid version: `____`
+- [x] n8n version: `2.25.X`
+- [x] Node.js version: `22.XX.XX`
+- [x] Unraid version: `7.3.X`
 - [x] Date verified: `2026-06-15` · Verified by: `maintainer`
 
 ## Connection & credentials
@@ -48,7 +48,7 @@ not its values — so no server specifics are recorded).
 - [x] System — Get Info
 - [x] System — Get Metrics
 - [x] System — Get Online Status
-- [x] System — Get UPS Status _(no UPS attached → normalised to `{ connected: false }`)_
+- [x] System — Get UPS Status
 - [x] System — Get Server Status
 - [x] System — Get Flash Info
 - [x] System — Get Registration
@@ -84,8 +84,10 @@ not its values — so no server specifics are recorded).
 
 ## Safety gating (the core protection)
 
-- [ ] Default credential (**Read**): a control op (e.g. Docker Start) is blocked with the level error message
-- [ ] Default credential (**Read**): a destructive op is blocked
+- [x] Default credential (**Read**): a control op (e.g. Docker Start) is blocked with the level error message
+    -> Operation "start" on "docker" requires control level "control", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+- [x] Default credential (**Read**): a destructive op is blocked
+    -> Operation "stop" on "array" requires control level "full", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
 - [ ] Credential **Control**: control ops work; destructive ops still blocked
 - [ ] Credential **Full**: destructive ops work
 - [ ] Node **Maximum Control Level = Control** on a **Full** credential → destructive blocked at that node only
