@@ -83,6 +83,26 @@ describe('Unraid.execute — Docker', () => {
 		expect(out[0].json).toEqual({ id: 'docker:1', state: 'RUNNING' });
 		expect(http.mock.calls[0][1].body.variables).toEqual({ id: 'docker:1' });
 	});
+
+	it('stop treats a post-action "not found after stopping" error as success', async () => {
+		const http = vi.fn().mockRejectedValue(new Error('Container a3cf5a0bbedc not found after stopping'));
+		const ctx = makeContext({ resource: 'docker', operation: 'stop', containerId: 'docker:1' }, http);
+		const [out] = await Unraid.prototype.execute.call(ctx as never);
+		expect(out[0].json).toEqual({ id: 'docker:1', operation: 'stop', success: true });
+	});
+
+	it('start treats a post-action "not found after starting" error as success', async () => {
+		const http = vi.fn().mockRejectedValue(new Error('Container a3cf5a0bbedc not found after starting'));
+		const ctx = makeContext({ resource: 'docker', operation: 'start', containerId: 'docker:1' }, http);
+		const [out] = await Unraid.prototype.execute.call(ctx as never);
+		expect(out[0].json).toEqual({ id: 'docker:1', operation: 'start', success: true });
+	});
+
+	it('start still surfaces unrelated errors', async () => {
+		const http = vi.fn().mockRejectedValue(new Error('network down'));
+		const ctx = makeContext({ resource: 'docker', operation: 'start', containerId: 'docker:1' }, http, false);
+		await expect(Unraid.prototype.execute.call(ctx as never)).rejects.toThrow('network down');
+	});
 });
 
 describe('Unraid.execute — Array', () => {

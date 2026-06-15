@@ -97,6 +97,21 @@ export class Unraid implements INodeType {
 		const credentials = await this.getCredentials('unraidApi');
 		const credLevel = (credentials.maxControlLevel as ControlLevel) ?? 'read';
 
+		// Unraid's docker mutation resolver returns the container by re-fetching it after the
+		// action; for stop/pause that lookup can fail ("... not found after stopping") even
+		// though the action itself succeeded. Treat that post-action lookup failure as success.
+		const runDockerMutation = async (mutation: string, containerId: string, op: string): Promise<IDataObject> => {
+			try {
+				const data = await unraidApiRequest.call(this, mutation, { id: containerId });
+				return ((data.docker as IDataObject)?.[op] as IDataObject) ?? { id: containerId, operation: op, success: true };
+			} catch (error) {
+				if (/not found after/i.test((error as Error)?.message ?? '')) {
+					return { id: containerId, operation: op, success: true };
+				}
+				throw error;
+			}
+		};
+
 		for (let i = 0; i < items.length; i++) {
 			try {
 				const resource = this.getNodeParameter('resource', i) as string;
@@ -136,19 +151,18 @@ export class Unraid implements INodeType {
 
 					else if (operation === 'restart') {
 						const containerId = this.getNodeParameter('containerId', i) as string;
-						await unraidApiRequest.call(this, dockerMutations.stop, { id: containerId });
+						await runDockerMutation(dockerMutations.stop, containerId, 'stop');
 						// Brief pause so the container has time to fully stop before starting
 						await new Promise((resolve) => setTimeout(resolve, 2000));
-						const startData = await unraidApiRequest.call(this, dockerMutations.start, { id: containerId });
-						results = [(startData.docker as IDataObject)?.start as IDataObject ?? {}];
+						await runDockerMutation(dockerMutations.start, containerId, 'start');
+						results = [{ id: containerId, operation: 'restart', success: true }];
 					}
 
 					else {
 						// start, stop, pause, unpause
 						const containerId = this.getNodeParameter('containerId', i) as string;
 						const mutation = dockerMutations[operation as keyof typeof dockerMutations] as string;
-						const data = await unraidApiRequest.call(this, mutation, { id: containerId });
-						results = [(data.docker as IDataObject)?.[operation] as IDataObject ?? {}];
+						results = [await runDockerMutation(mutation, containerId, operation)];
 					}
 				}
 
