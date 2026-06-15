@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-unraid",
-  "version": "1.0.1-develop-03",
+  "version": "2.0.0",
   "description": "n8n community node for the Unraid API - manage Docker containers, VMs, array and disk health, notifications, and system metrics via GraphQL.",
   "keywords": [
     "n8n-community-node-package",

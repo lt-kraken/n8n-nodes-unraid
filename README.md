@@ -56,6 +56,25 @@ tell whether a call came from the model or from you, so bound the model explicit
 > **Tip:** Treat the Unraid API key itself as the first layer — scope it to least privilege
 > in Unraid. The control-level settings are a second layer, not a replacement.
 
+## Upgrading from 1.x
+
+> **Breaking change (2.0.0): the node is now read-only by default.** Credentials created
+> under 1.x have no control level set, so after upgrading they fall back to `Read`. Any
+> workflow that starts/stops/restarts/pauses containers or VMs, touches the array, or
+> creates/archives/deletes notifications will stop with a _"requires control level…"_ error
+> until you opt in.
+
+To restore those workflows:
+
+1. Open your **Unraid API** credential.
+2. Set **Maximum Control Level** to:
+   - `Control` — for start/stop/restart/pause and notification create/archive, or
+   - `Full` — if you also need destructive ops (stop the array, force-stop a VM, delete a notification).
+3. *(Optional)* Keep individual nodes at *Use Credential Default*, or set a **lower** level on
+   specific nodes — especially any node handed to an AI Agent.
+
+Read-only workflows need no changes.
+
 ## Resources & Operations
 
 ### Docker
@@ -156,14 +175,16 @@ Being honest about what's been verified:
   routing + control-level gating. CI runs lint, tests, and build on every pull request
   (see [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)). Run them yourself with
   `npm test`.
-- **Manual:** [`TESTING.md`](./TESTING.md) is a checklist of end-to-end scenarios to verify
-  against a real Unraid server.
+- **Manual:** [`TESTING.md`](./TESTING.md) records what's been verified live against a real
+  Unraid server — all read operations, the control/destructive operations, the full
+  control-level gating matrix, and AI-Agent tool use (including a destructive op correctly
+  blocked at `Control`).
 - **Importable:** [`examples/read-verification.workflow.json`](./examples/read-verification.workflow.json)
   is a self-asserting n8n workflow that runs every read operation and checks the actual
   result of each — import it, point it at your credential, and run it.
-- **Not yet validated:** long-running stability, the full matrix of Unraid versions, and
-  live destructive-operation behaviour beyond request-shape tests. Contributions that tick
-  more boxes in `TESTING.md` are very welcome.
+- **Not yet validated:** long-running stability and the full matrix of Unraid versions. VM
+  graceful reboot needs an ACPI-capable guest, and array Start can't be issued from a
+  same-host n8n (both noted in `TESTING.md`). Contributions that tick more boxes are welcome.
 
 ## Contributing
 
