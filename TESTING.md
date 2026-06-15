@@ -29,9 +29,11 @@ which checks the actual result of each read and records nothing about the server
 ## Connection & credentials
 
 - [x] Credential authenticates with a valid API key (every live read call succeeded)
-- [ ] Invalid API key / wrong URL fails cleanly with a readable error
+- [x] Invalid API key / wrong URL fails cleanly with a readable error
+    -> API key validation failed
+    -> The service refused the connection - perhaps it is offline
 - [ ] **Allow Unauthorized Certificates** works against an HTTPS Unraid using a self-signed cert
-- [ ] Server URL with a trailing slash is handled (no double `//graphql`)
+- [x] Server URL with a trailing slash is handled (no double `//graphql`)
 
 ## Read operations (control level: Read)
 
@@ -54,8 +56,8 @@ not its values — so no server specifics are recorded).
 - [x] System — Get Registration
 - [x] System — Get Config
 - [x] VM — Get Many _(empty list when no VMs defined — path verified)_
-- [ ] Notification — Get Many (Unread / Archived / All) _(Unread verified; Archived/All pending)_
-- [ ] Notification — Get Many honours importance filter, limit and offset _(limit/offset verified; importance pending)_
+- [x] Notification — Get Many (Unread / Archived / All) 
+- [x] Notification — Get Many honours importance filter, limit and offset
 - [x] Notification — Get Overview
 
 ## Control operations (control level: Control)
@@ -88,10 +90,14 @@ not its values — so no server specifics are recorded).
     -> Operation "start" on "docker" requires control level "control", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
 - [x] Default credential (**Read**): a destructive op is blocked
     -> Operation "stop" on "array" requires control level "full", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
-- [ ] Credential **Control**: control ops work; destructive ops still blocked
-- [ ] Credential **Full**: destructive ops work
-- [ ] Node **Maximum Control Level = Control** on a **Full** credential → destructive blocked at that node only
-- [ ] Node level cannot exceed credential (**Control** credential + **Full** node → destructive still blocked)
+- [x] Credential **Control**: control ops work; destructive ops still blocked
+    -> Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+- [x] Credential **Full**: destructive ops work
+    -> Verified with delete of a notification
+- [x] Node **Maximum Control Level = Control** on a **Full** credential → destructive blocked at that node only
+    -> Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+- [x] Node level cannot exceed credential (**Control** credential + **Full** node → destructive still blocked)
+    -> Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
 
 ## AI Agent (`usableAsTool`)
 
