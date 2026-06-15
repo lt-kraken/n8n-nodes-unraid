@@ -30,9 +30,10 @@ which checks the actual result of each read and records nothing about the server
 
 - [x] Credential authenticates with a valid API key (every live read call succeeded)
 - [x] Invalid API key / wrong URL fails cleanly with a readable error
-    -> API key validation failed
-    -> The service refused the connection - perhaps it is offline
-- [ ] **Allow Unauthorized Certificates** works against an HTTPS Unraid using a self-signed cert
+    > API key validation failed
+    
+    > The service refused the connection - perhaps it is offline
+- [x] **Allow Unauthorized Certificates** works against an HTTPS Unraid using a self-signed cert
 - [x] Server URL with a trailing slash is handled (no double `//graphql`)
 
 ## Read operations (control level: Read)
@@ -62,42 +63,44 @@ not its values — so no server specifics are recorded).
 
 ## Control operations (control level: Control)
 
-- [ ] Docker — Start (container state actually changes)
-- [ ] Docker — Stop
-- [ ] Docker — Restart
-- [ ] Docker — Pause
-- [ ] Docker — Unpause
-- [ ] Array — Start
-- [ ] VM — Start
-- [ ] VM — Stop
-- [ ] VM — Restart
-- [ ] VM — Pause
-- [ ] VM — Resume
-- [ ] VM — Reboot
-- [ ] Notification — Create (appears in the Unraid UI)
-- [ ] Notification — Archive
-- [ ] Notification — Archive All
+- [x] Docker — Start (container state actually changes)
+- [x] Docker — Stop
+- [x] Docker — Restart
+- [x] Docker — Pause
+- [x] Docker — Unpause
+- [ ] Array — Start — gating verified (blocked below Control). Live start-from-stopped is not testable from a same-host n8n: whenever the array is stopped, Docker (and n8n) is down, so n8n can't issue the start. Mutation unchanged since 1.0.1.
+- [x] VM — Start
+- [x] VM — Stop
+- [x] VM — Restart
+- [x] VM — Pause
+- [x] VM — Resume
+- [ ] VM — Reboot — node behaves correctly; on this guest the API returned "graceful shutdown failed, please force stop" (guest OS didn't honour the ACPI request). Re-test on a guest with ACPI / guest agent enabled.
+- [x] Notification — Create (appears in the Unraid UI)
+- [x] Notification — Archive
+- [x] Notification — Archive All
 
 ## Destructive operations (control level: Full — test on disposable targets)
 
-- [ ] Array — Stop (on a test array / with data safe)
-- [ ] VM — Force Stop (on a disposable VM)
-- [ ] Notification — Delete
+- [ ] Array — Stop — gating verified (blocked below Full; no mutation sent when blocked). Live stop intentionally not run via n8n: on a same-host n8n it stops the n8n container itself (the array stops, but n8n is killed mid-call and can't report completion or start it again). Mutation unchanged since 1.0.1; identical to the Unraid UI Stop button. Intended for remote orchestration or as the final step of a UPS shutdown.
+- [x] VM — Force Stop (on a disposable VM)
+- [x] Notification — Delete
 
 ## Safety gating (the core protection)
 
 - [x] Default credential (**Read**): a control op (e.g. Docker Start) is blocked with the level error message
-    -> Operation "start" on "docker" requires control level "control", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+    > Operation "start" on "docker" requires control level "control", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
 - [x] Default credential (**Read**): a destructive op is blocked
-    -> Operation "stop" on "array" requires control level "full", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+    > Operation "stop" on "array" requires control level "full", but the effective level is "read". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
 - [x] Credential **Control**: control ops work; destructive ops still blocked
-    -> Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+    > Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
 - [x] Credential **Full**: destructive ops work
-    -> Verified with delete of a notification
+    > Verified with delete of a notification
 - [x] Node **Maximum Control Level = Control** on a **Full** credential → destructive blocked at that node only
-    -> Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+    > Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
 - [x] Node level cannot exceed credential (**Control** credential + **Full** node → destructive still blocked)
-    -> Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+    > Operation "delete" on "notification" requires control level "full", but the effective level is "control". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.
+- [x] Node action cannot exceed token scope
+    > Forbidden resource
 
 ## AI Agent (`usableAsTool`)
 

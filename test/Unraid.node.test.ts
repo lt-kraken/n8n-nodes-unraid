@@ -338,6 +338,37 @@ describe('Unraid.execute — control level gating', () => {
 		);
 		await expect(promise).rejects.toThrow(/requires control level/);
 	});
+
+	it('array start is blocked below Control', async () => {
+		const { promise } = run(
+			{ resource: 'array', operation: 'start' },
+			{ data: { array: { setState: {} } } },
+			false,
+			'read',
+		);
+		await expect(promise).rejects.toThrow(/requires control level "control"/);
+	});
+
+	it('array stop is blocked below Full and sends setState only when allowed', async () => {
+		const blocked = run(
+			{ resource: 'array', operation: 'stop' },
+			{ data: { array: { setState: { id: 'a', state: 'STOPPED' } } } },
+			false,
+			'control',
+		);
+		await expect(blocked.promise).rejects.toThrow(/requires control level "full"/);
+		expect(blocked.http).not.toHaveBeenCalled();
+
+		const { promise, http } = run(
+			{ resource: 'array', operation: 'stop' },
+			{ data: { array: { setState: { id: 'a', state: 'STOPPED' } } } },
+			false,
+			'full',
+		);
+		const [out] = await promise;
+		expect(out[0].json).toEqual({ id: 'a', state: 'STOPPED' });
+		expect(http.mock.calls[0][1].body.query).toMatch(/setState/);
+	});
 });
 
 describe('Unraid.execute — error handling', () => {
