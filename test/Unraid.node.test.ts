@@ -127,6 +127,17 @@ describe('Unraid.execute — Docker', () => {
 		const ctx = makeContext({ resource: 'docker', operation: 'start', containerId: 'docker:1' }, http, false);
 		await expect(Unraid.prototype.execute.call(ctx as never)).rejects.toThrow('network down');
 	});
+
+	it('matches a short container id against the prefixed id returned by the list', async () => {
+		const fullId = 'srv01:a3cf5a0bbedcdeadbeef0123456789';
+		const http = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('Container a3cf5a0bbedc not found after starting'))
+			.mockResolvedValueOnce({ data: { docker: { containers: [{ id: fullId, state: 'RUNNING' }] } } });
+		const ctx = makeContext({ resource: 'docker', operation: 'start', containerId: 'a3cf5a0bbedc' }, http);
+		const [out] = await Unraid.prototype.execute.call(ctx as never);
+		expect(out[0].json).toEqual({ id: fullId, state: 'RUNNING' });
+	});
 });
 
 describe('Unraid.execute — Array', () => {

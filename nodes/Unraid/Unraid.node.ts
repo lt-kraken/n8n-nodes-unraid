@@ -97,6 +97,19 @@ export class Unraid implements INodeType {
 		const credentials = await this.getCredentials('unraidApi');
 		const credLevel = (credentials.maxControlLevel as ControlLevel) ?? 'read';
 
+		// Match a container from the list by full prefixed id, bare 64-char id, short-id prefix,
+		// or name. Unraid returns ids as "<serverPrefix>:<64-char id>" while users commonly pass
+		// the short docker id or the container name.
+		const matchContainer = (c: IDataObject, idOrName: string): boolean => {
+			const full = String(c.id ?? '');
+			const bare = full.includes(':') ? full.slice(full.lastIndexOf(':') + 1) : full;
+			if (full === idOrName || bare === idOrName || (idOrName.length >= 12 && bare.startsWith(idOrName))) {
+				return true;
+			}
+			const target = idOrName.startsWith('/') ? idOrName.slice(1) : idOrName;
+			return ((c.names as string[]) ?? []).some((n) => (n.startsWith('/') ? n.slice(1) : n) === target);
+		};
+
 		// Unraid's docker mutation reports its result by re-fetching the container after the
 		// action, which can throw ("... not found after stopping/starting") even on success.
 		// On that failure we do NOT assume success: we re-list the containers and confirm the
@@ -113,7 +126,7 @@ export class Unraid implements INodeType {
 			// Re-fetch failed or returned nothing usable: confirm the real state.
 			const listData = await unraidApiRequest.call(this, dockerQueries.getMany);
 			const containers = ((listData.docker as IDataObject)?.containers as IDataObject[]) ?? [];
-			const container = containers.find((c) => c.id === containerId || (c.names as string[])?.includes(containerId));
+			const container = containers.find((c) => matchContainer(c, containerId));
 			const state = (container?.state as string) ?? 'NOT_FOUND';
 			const mustRun = op === 'start' || op === 'unpause';
 			if (mustRun ? state !== 'RUNNING' : state === 'RUNNING') {
@@ -158,7 +171,7 @@ export class Unraid implements INodeType {
 						const containerId = this.getNodeParameter('containerId', i) as string;
 						const data = await unraidApiRequest.call(this, dockerQueries.get);
 						const containers = ((data.docker as IDataObject)?.containers as IDataObject[]) ?? [];
-						const match = containers.find((c) => c.id === containerId || (c.names as string[])?.includes(containerId));
+						const match = containers.find((c) => matchContainer(c, containerId));
 						results = match ? [match] : [];
 					}
 
