@@ -107,12 +107,26 @@ not its values — so no server specifics are recorded).
 
 ## AI Agent (`usableAsTool`)
 
-- [ ] Node attached to an AI Agent runs a read op end-to-end
+The control-level gate runs inside the node's `execute()`, so it applies identically no
+matter who invokes the node — a manual run or an AI Agent. An agent has no way to bypass it
+(the check isn't in agent configuration), so the two "blocked / honours ceiling" rows are
+guaranteed by construction and proven by the gating unit tests. A live agent run only adds
+verification of n8n's tool plumbing.
+
+- [ ] Node attached to an AI Agent runs a read op end-to-end _(live agent run — pending; needs a `toolWorkflow` wrapper since the API can't wire a community node as `ai_tool` directly)_
 - [ ] Agent tool node pinned to **Control** is blocked from a destructive op
+    > by construction: the gate runs in `execute()` regardless of caller — unit-tested in `Unraid.execute — control level gating`. Live agent run pending.
 - [ ] Agent honours the credential ceiling even when asked to do more
+    > by construction: `maxControlLevel` is read from the credential in `execute()` and applied as `min(node, credential)` — unit-tested. Live agent run pending.
 
 ## Robustness
 
-- [ ] **Continue On Fail** returns the error in the output instead of aborting the workflow
-- [ ] Operating on a non-existent container / VM / notification ID fails gracefully
-- [ ] A GraphQL partial-data + errors response returns the data rather than hard-failing
+Covered by the automated unit-test suite (`npm test`) — deterministic, not dependent on
+live server state.
+
+- [x] **Continue On Fail** returns the error in the output instead of aborting the workflow
+    > unit test: `Unraid.execute — error handling › continueOnFail captures the error as output instead of throwing`
+- [x] Operating on a non-existent container / VM / notification ID fails gracefully
+    > unit test: `Unraid.execute — Docker › get returns nothing when no container matches`; bogus ids on mutations surface a clean `NodeApiError` (caught by Continue On Fail when enabled)
+- [x] A GraphQL partial-data + errors response returns the data rather than hard-failing
+    > unit test: `unraidApiRequest › returns partial data when GraphQL errors arrive alongside data`
