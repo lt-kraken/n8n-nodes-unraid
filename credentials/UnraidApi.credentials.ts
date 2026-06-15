@@ -35,6 +35,33 @@ export class UnraidApi implements ICredentialType {
 			default: false,
 			description: 'Whether to allow self-signed or otherwise invalid SSL certificates. Enable this if your Unraid server uses a self-signed certificate.',
 		},
+		{
+			displayName: 'Maximum Control Level',
+			name: 'maxControlLevel',
+			type: 'options',
+			options: [
+				{
+					name: 'Read',
+					value: 'read',
+					description: 'Read-only: status, lists, and metrics. Cannot change server state.',
+				},
+				{
+					name: 'Control',
+					value: 'control',
+					description:
+						'Read plus reversible state changes: start/stop/restart/pause containers and VMs, start the array, create/archive notifications.',
+				},
+				{
+					name: 'Full',
+					value: 'full',
+					description:
+						'Control plus destructive operations: stop the array, force-stop a VM, and permanently delete notifications.',
+				},
+			],
+			default: 'read',
+			description:
+				'The highest level of operation any node — including an AI Agent tool — may perform with this credential. This is a hard ceiling tied to the API key; default is read-only.',
+		},
 	];
 
 	authenticate: IAuthenticateGeneric = {

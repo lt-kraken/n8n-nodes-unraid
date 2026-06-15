@@ -5,8 +5,11 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 
 import { unraidApiRequest } from './GenericFunctions';
+import type { ControlLevel } from './operations';
+import { getOperationRisk, resolveLevel, isAllowed, requiredLevel } from './operations';
 
 import { arrayOperations, arrayFields } from './descriptions/ArrayDescription';
 import { diskOperations, diskFields } from './descriptions/DiskDescription';
@@ -52,6 +55,32 @@ export class Unraid implements INodeType {
 				],
 				default: 'docker',
 			},
+			{
+				displayName: 'Maximum Control Level',
+				name: 'maxControlLevel',
+				type: 'options',
+				options: [
+					{
+						name: 'Use Credential Default',
+						value: 'credential',
+						description: 'Inherit the limit set on the Unraid credential',
+					},
+					{ name: 'Read', value: 'read', description: 'Read-only: status, lists, and metrics' },
+					{
+						name: 'Control',
+						value: 'control',
+						description: 'Read plus reversible state changes (start/stop/restart/pause, create/archive)',
+					},
+					{
+						name: 'Full',
+						value: 'full',
+						description: 'Control plus destructive operations (stop array, force-stop VM, delete)',
+					},
+				],
+				default: 'credential',
+				description:
+					'Caps what this node may do. It can only narrow below the credential limit, never exceed it. When this node is used as an AI Agent tool, set this to bound what the model can do.',
+			},
 			...arrayOperations,       ...arrayFields,
 			...diskOperations,        ...diskFields,
 			...dockerOperations,      ...dockerFields,
@@ -65,10 +94,70 @@ export class Unraid implements INodeType {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 
+		const credentials = await this.getCredentials('unraidApi');
+		const credLevel = (credentials.maxControlLevel as ControlLevel) ?? 'read';
+
+		// Match a container from the list by full prefixed id, bare 64-char id, short-id prefix,
+		// or name. Unraid returns ids as "<serverPrefix>:<64-char id>" while users commonly pass
+		// the short docker id or the container name.
+		const matchContainer = (c: IDataObject, idOrName: string): boolean => {
+			const full = String(c.id ?? '');
+			const bare = full.includes(':') ? full.slice(full.lastIndexOf(':') + 1) : full;
+			if (full === idOrName || bare === idOrName || (idOrName.length >= 12 && bare.startsWith(idOrName))) {
+				return true;
+			}
+			const target = idOrName.startsWith('/') ? idOrName.slice(1) : idOrName;
+			return ((c.names as string[]) ?? []).some((n) => (n.startsWith('/') ? n.slice(1) : n) === target);
+		};
+
+		// Unraid's docker mutation reports its result by re-fetching the container after the
+		// action, which can throw ("... not found after stopping/starting") even on success.
+		// On that failure we do NOT assume success: we re-list the containers and confirm the
+		// container actually reached the expected state (running for start/unpause, not-running
+		// for stop/pause). This stops a failed start from being reported as a success.
+		const runDockerMutation = async (mutation: string, containerId: string, op: string): Promise<IDataObject> => {
+			try {
+				const data = await unraidApiRequest.call(this, mutation, { id: containerId });
+				const result = (data.docker as IDataObject)?.[op] as IDataObject | undefined;
+				if (result && result.state) return result;
+			} catch (error) {
+				if (!/not found after/i.test((error as Error)?.message ?? '')) throw error;
+			}
+			// Re-fetch failed or returned nothing usable: confirm the real state.
+			const listData = await unraidApiRequest.call(this, dockerQueries.getMany);
+			const containers = ((listData.docker as IDataObject)?.containers as IDataObject[]) ?? [];
+			const container = containers.find((c) => matchContainer(c, containerId));
+			const state = (container?.state as string) ?? 'NOT_FOUND';
+			const mustRun = op === 'start' || op === 'unpause';
+			if (mustRun ? state !== 'RUNNING' : state === 'RUNNING') {
+				throw new NodeOperationError(
+					this.getNode(),
+					`Container ${containerId} did not reach the expected state after "${op}" (current state: ${state}).`,
+				);
+			}
+			return container ?? { id: containerId, operation: op, success: true, state };
+		};
+
 		for (let i = 0; i < items.length; i++) {
 			try {
 				const resource = this.getNodeParameter('resource', i) as string;
 				const operation = this.getNodeParameter('operation', i) as string;
+
+				// Gate the operation against the effective control level (the lower of the
+				// node's cap and the credential's ceiling) before touching the server.
+				const risk = getOperationRisk(resource, operation);
+				const nodeLevel = this.getNodeParameter('maxControlLevel', i, 'credential') as
+					| ControlLevel
+					| 'credential';
+				const effective = resolveLevel(nodeLevel, credLevel);
+				if (!isAllowed(risk, effective)) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Operation "${operation}" on "${resource}" requires control level "${requiredLevel(risk)}", but the effective level is "${effective}". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.`,
+						{ itemIndex: i },
+					);
+				}
+
 				let results: IDataObject[] = [];
 
 				// ── Docker ────────────────────────────────────────────────────────────
@@ -82,25 +171,24 @@ export class Unraid implements INodeType {
 						const containerId = this.getNodeParameter('containerId', i) as string;
 						const data = await unraidApiRequest.call(this, dockerQueries.get);
 						const containers = ((data.docker as IDataObject)?.containers as IDataObject[]) ?? [];
-						const match = containers.find((c) => c.id === containerId || (c.names as string[])?.includes(containerId));
+						const match = containers.find((c) => matchContainer(c, containerId));
 						results = match ? [match] : [];
 					}
 
 					else if (operation === 'restart') {
 						const containerId = this.getNodeParameter('containerId', i) as string;
-						await unraidApiRequest.call(this, dockerMutations.stop, { id: containerId });
+						await runDockerMutation(dockerMutations.stop, containerId, 'stop');
 						// Brief pause so the container has time to fully stop before starting
 						await new Promise((resolve) => setTimeout(resolve, 2000));
-						const startData = await unraidApiRequest.call(this, dockerMutations.start, { id: containerId });
-						results = [(startData.docker as IDataObject)?.start as IDataObject ?? {}];
+						await runDockerMutation(dockerMutations.start, containerId, 'start');
+						results = [{ id: containerId, operation: 'restart', success: true }];
 					}
 
 					else {
 						// start, stop, pause, unpause
 						const containerId = this.getNodeParameter('containerId', i) as string;
 						const mutation = dockerMutations[operation as keyof typeof dockerMutations] as string;
-						const data = await unraidApiRequest.call(this, mutation, { id: containerId });
-						results = [(data.docker as IDataObject)?.[operation] as IDataObject ?? {}];
+						results = [await runDockerMutation(mutation, containerId, operation)];
 					}
 				}
 
@@ -146,23 +234,40 @@ export class Unraid implements INodeType {
 
 				// ── System ────────────────────────────────────────────────────────────
 				else if (resource === 'system') {
-					const query = systemQueries[operation as keyof typeof systemQueries];
-					const data = await unraidApiRequest.call(this, query);
-
-					if (operation === 'getOnlineStatus') {
-						results = [{ online: data.online ?? false }];
-					} else if (operation === 'getRegistration') {
-						results = [data.registration as IDataObject ?? {}];
-					} else if (operation === 'getServerStatus') {
-						results = (data.servers as IDataObject[]) ?? [];
-					} else if (operation === 'getUpsStatus') {
-						results = (data.upsDevices as IDataObject[]) ?? [];
+					if (operation === 'getUpsStatus') {
+						// Unraid's API throws ("No UPS data returned from apcaccess") instead of
+						// returning an empty list when no UPS is attached. Normalise that into a
+						// plain not-connected result so consumers (including AI Agents) get data,
+						// not an error. Genuine failures are still surfaced.
+						try {
+							const data = await unraidApiRequest.call(this, systemQueries.getUpsStatus);
+							const devices = (data.upsDevices as IDataObject[]) ?? [];
+							results = devices.length ? devices : [{ connected: false }];
+						} catch (error) {
+							const message = (error as Error)?.message ?? '';
+							if (/ups|apcaccess/i.test(message)) {
+								results = [{ connected: false }];
+							} else {
+								throw error;
+							}
+						}
 					} else {
-						const keyMap: Record<string, string> = {
-							getInfo: 'info', getMetrics: 'metrics',
-							getFlashInfo: 'flash', getConfig: 'config',
-						};
-						results = [data[keyMap[operation]] as IDataObject ?? {}];
+						const query = systemQueries[operation as keyof typeof systemQueries];
+						const data = await unraidApiRequest.call(this, query);
+
+						if (operation === 'getOnlineStatus') {
+							results = [{ online: data.online ?? false }];
+						} else if (operation === 'getRegistration') {
+							results = [data.registration as IDataObject ?? {}];
+						} else if (operation === 'getServerStatus') {
+							results = (data.servers as IDataObject[]) ?? [];
+						} else {
+							const keyMap: Record<string, string> = {
+								getInfo: 'info', getMetrics: 'metrics',
+								getFlashInfo: 'flash', getConfig: 'config',
+							};
+							results = [data[keyMap[operation]] as IDataObject ?? {}];
+						}
 					}
 				}
 
@@ -196,10 +301,18 @@ export class Unraid implements INodeType {
 						const importance = this.getNodeParameter('importance', i) as string;
 						const limit      = this.getNodeParameter('limit', i) as number;
 						const offset     = this.getNodeParameter('offset', i) as number;
-						const filter: IDataObject = { type, offset, limit };
-						if (importance) filter.importance = importance;
-						const data = await unraidApiRequest.call(this, notificationQueries.getMany, { filter });
-						results = ((data.notifications as IDataObject)?.list as IDataObject[]) ?? [];
+
+						// The Unraid NotificationType enum only has UNREAD and ARCHIVE; "ALL" is not a real
+						// value, so fan out to both and concatenate the results.
+						const types = type === 'ALL' ? ['UNREAD', 'ARCHIVE'] : [type];
+						const collected: IDataObject[] = [];
+						for (const t of types) {
+							const filter: IDataObject = { type: t, offset, limit };
+							if (importance) filter.importance = importance;
+							const data = await unraidApiRequest.call(this, notificationQueries.getMany, { filter });
+							collected.push(...(((data.notifications as IDataObject)?.list as IDataObject[]) ?? []));
+						}
+						results = collected;
 					}
 
 					else if (operation === 'getOverview') {

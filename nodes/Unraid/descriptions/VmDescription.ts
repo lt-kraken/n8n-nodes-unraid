@@ -8,7 +8,7 @@ export const vmOperations: INodeProperties[] = [
 		noDataExpression: true,
 		displayOptions: { show: { resource: ['vm'] } },
 		options: [
-			{ name: 'Force Stop', value: 'forceStop', description: 'Force-stop a VM',         action: 'Force stop a VM' },
+			{ name: 'Force Stop', value: 'forceStop', description: 'Force-stop a VM (destructive — requires Full control level)', action: 'Force stop a VM' },
 			{ name: 'Get Many',   value: 'getMany',   description: 'List all VMs',           action: 'List all virtual machines' },
 			{ name: 'Pause',      value: 'pause',     description: 'Pause a VM',              action: 'Pause a VM' },
 			{ name: 'Reboot',     value: 'reboot',    description: 'Reboot a VM',             action: 'Reboot a VM' },

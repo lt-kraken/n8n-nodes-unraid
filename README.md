@@ -15,10 +15,65 @@ In your n8n instance:
 
 Create a new **Unraid API** credential with:
 
-| Field      | Description                                                   | Example                  |
-| ---------- | ------------------------------------------------------------- | ------------------------ |
-| Server URL | Your Unraid server URL including port                         | `http://192.168.1.x:port` |
-| API Key    | From Unraid **Settings → Management Access → API Key**        |                          |
+| Field                 | Description                                                              | Example                   |
+| --------------------- | ------------------------------------------------------------------------ | ------------------------- |
+| Server URL            | Your Unraid server URL including port                                    | `http://192.168.1.x:port` |
+| API Key               | From Unraid **Settings → Management Access → API Key**                   |                           |
+| Allow Unauthorized Certificates | Enable if your Unraid server uses a self-signed certificate     | `false`                   |
+| Maximum Control Level | The highest level of operation any node using this credential may perform | `Read` (default)          |
+
+## Safety & permissions
+
+This node is **read-only by default**. Anything that changes your server — and especially
+anything destructive — must be explicitly opted into. Permissions are layered so an
+automation (or an AI Agent) can never do more than you allowed:
+
+- **Maximum Control Level** on the **credential** is a hard ceiling tied to the API key.
+  Default is `Read`.
+- **Maximum Control Level** on the **node** can only *narrow* below the credential, never
+  exceed it. Default is *Use Credential Default*.
+
+The effective level for any run is the **lower** of the two. The three levels are:
+
+| Level     | Allows                                                                                          |
+| --------- | ----------------------------------------------------------------------------------------------- |
+| `Read`    | Status, lists, and metrics only. Cannot change server state.                                    |
+| `Control` | Read **+** reversible changes: start/stop/restart/pause containers & VMs, start array, create/archive notifications. |
+| `Full`    | Control **+** destructive ops: **stop the array**, **force-stop a VM**, **delete notifications**. |
+
+If an operation needs a higher level than the effective one, the node fails with a clear
+message instead of touching your server.
+
+### Using it with an AI Agent
+
+The node is marked `usableAsTool: true`, so an n8n AI Agent can drive it. The node cannot
+tell whether a call came from the model or from you, so bound the model explicitly:
+
+- Pin the AI Agent's Unraid tool node's **Maximum Control Level** to `Read` or `Control`, **or**
+- Give the agent a separate credential scoped to `Read`/`Control`, and keep your `Full`
+  credential for manual workflows.
+
+> **Tip:** Treat the Unraid API key itself as the first layer — scope it to least privilege
+> in Unraid. The control-level settings are a second layer, not a replacement.
+
+## Upgrading from 1.x
+
+> **Breaking change (2.0.0): the node is now read-only by default.** Credentials created
+> under 1.x have no control level set, so after upgrading they fall back to `Read`. Any
+> workflow that starts/stops/restarts/pauses containers or VMs, touches the array, or
+> creates/archives/deletes notifications will stop with a _"requires control level…"_ error
+> until you opt in.
+
+To restore those workflows:
+
+1. Open your **Unraid API** credential.
+2. Set **Maximum Control Level** to:
+   - `Control` — for start/stop/restart/pause and notification create/archive, or
+   - `Full` — if you also need destructive ops (stop the array, force-stop a VM, delete a notification).
+3. *(Optional)* Keep individual nodes at *Use Credential Default*, or set a **lower** level on
+   specific nodes — especially any node handed to an AI Agent.
+
+Read-only workflows need no changes.
 
 ## Resources & Operations
 
@@ -34,7 +89,7 @@ Create a new **Unraid API** credential with:
 | Pause     | Pause a running container          |
 | Unpause   | Unpause a paused container         |
 
-> **Tip:** The node is marked `usableAsTool: true`, so it works as a tool inside n8n AI Agent workflows.
+Start/Stop/Restart/Pause/Unpause require the `Control` level (see [Safety & permissions](#safety--permissions)).
 
 ### Array
 
@@ -44,8 +99,24 @@ Create a new **Unraid API** credential with:
 | Get Disks          | All array disks (parities, data, cache) with temp, I/O stats, and error counts |
 | Get Shares         | All user shares                                    |
 | Get Parity History | History of parity check runs                       |
-| Start              | Start the array                                    |
-| Stop               | Stop the array                                     |
+| Start              | Start the array _(requires `Control`)_             |
+| Stop               | Stop the array _(destructive — requires `Full`)_   |
+
+> **⚠️ On a same-host n8n, Array Stop is self-terminating.** Stopping the array shuts down
+> the Docker service, which stops **every container — including the n8n container running
+> the workflow.** The array stops **gracefully**, but n8n goes offline before the response
+> returns, so the node reports a **504 / gateway timeout even though the stop succeeded.**
+> You can't chain a follow-up Start in the same workflow — start the array again from the
+> Unraid UI (the standard recovery). No data is lost: Stop/Start only unmount/remount the
+> array, identical to the UI buttons.
+>
+> **When Array Stop/Start make sense:**
+> - **Remote orchestration** — an n8n instance running *off* the Unraid box (another
+>   server/VPS, or one Unraid managing another) can stop/start an array safely.
+> - **UPS-triggered safe shutdown** — pair `System → Get UPS Status` with `Array → Stop` as
+>   the *final* step of a low-battery shutdown flow, where you don't need n8n afterward.
+> - **Scheduled / post-maintenance startup** — `Array → Start` is safe and never
+>   self-terminating; good for bringing the array back on a schedule or after an event.
 
 ### Disk
 
@@ -71,13 +142,13 @@ Create a new **Unraid API** credential with:
 | Operation  | Description              |
 | ---------- | ------------------------ |
 | Get Many   | List all VMs             |
-| Start      | Start a VM               |
-| Stop       | Gracefully stop a VM     |
-| Restart    | Stop then start a VM     |
-| Pause      | Pause a VM               |
-| Resume     | Resume a paused VM       |
-| Reboot     | Reboot a VM              |
-| Force Stop | Force-stop a VM          |
+| Start      | Start a VM _(requires `Control`)_ |
+| Stop       | Gracefully stop a VM _(requires `Control`)_ |
+| Restart    | Stop then start a VM _(requires `Control`)_ |
+| Pause      | Pause a VM _(requires `Control`)_ |
+| Resume     | Resume a paused VM _(requires `Control`)_ |
+| Reboot     | Reboot a VM _(requires `Control`)_ |
+| Force Stop | Force-stop a VM _(destructive — requires `Full`)_ |
 
 ### Notification
 
@@ -85,16 +156,35 @@ Create a new **Unraid API** credential with:
 | ----------- | -------------------------------------------------------- |
 | Get Many    | List notifications — filter by type, importance, limit, offset |
 | Get Overview | Unread and archived counts by importance level          |
-| Create      | Create a new notification                                |
-| Archive     | Archive a notification                                   |
-| Archive All | Archive all notifications                                |
-| Delete      | Delete a notification                                    |
+| Create      | Create a new notification _(requires `Control`)_         |
+| Archive     | Archive a notification _(requires `Control`)_            |
+| Archive All | Archive all notifications _(requires `Control`)_         |
+| Delete      | Delete a notification _(destructive — requires `Full`)_  |
 
 ## Compatibility
 
 - n8n 1.0 or later
 - Node.js 22 or later
 - Unraid 6.12 or later (GraphQL API required)
+
+## Testing status
+
+Being honest about what's been verified:
+
+- **Automated:** unit tests (Vitest) cover the GraphQL client and the node's
+  routing + control-level gating. CI runs lint, tests, and build on every pull request
+  (see [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)). Run them yourself with
+  `npm test`.
+- **Manual:** [`TESTING.md`](./TESTING.md) records what's been verified live against a real
+  Unraid server — all read operations, the control/destructive operations, the full
+  control-level gating matrix, and AI-Agent tool use (including a destructive op correctly
+  blocked at `Control`).
+- **Importable:** [`examples/read-verification.workflow.json`](./examples/read-verification.workflow.json)
+  is a self-asserting n8n workflow that runs every read operation and checks the actual
+  result of each — import it, point it at your credential, and run it.
+- **Not yet validated:** long-running stability and the full matrix of Unraid versions. VM
+  graceful reboot needs an ACPI-capable guest, and array Start can't be issued from a
+  same-host n8n (both noted in `TESTING.md`). Contributions that tick more boxes are welcome.
 
 ## Contributing
 

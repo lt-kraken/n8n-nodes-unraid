@@ -13,7 +13,7 @@ export const arrayOperations: INodeProperties[] = [
 			{ name: 'Get Shares',        value: 'getShares',        description: 'List all user shares',                               action: 'Get shares' },
 			{ name: 'Get Status',        value: 'getStatus',        description: 'Get array state, capacity, and parity check status', action: 'Get array status' },
 			{ name: 'Start',             value: 'start',            description: 'Start the array',                                    action: 'Start array' },
-			{ name: 'Stop',              value: 'stop',             description: 'Stop the array',                                     action: 'Stop array' },
+			{ name: 'Stop',              value: 'stop',             description: 'Stop the array (destructive — requires Full). Also stops all Docker containers; on a same-host n8n this stops n8n itself. Best for remote use or as the final step of a UPS shutdown.', action: 'Stop array' },
 		],
 		default: 'getStatus',
 	},

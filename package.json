@@ -1,9 +1,23 @@
 {
   "name": "n8n-nodes-unraid",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "n8n community node for the Unraid API - manage Docker containers, VMs, array and disk health, notifications, and system metrics via GraphQL.",
   "keywords": [
-    "n8n-community-node-package"
+    "n8n-community-node-package",
+    "n8n",
+    "n8n-node",
+    "unraid",
+    "unraid-api",
+    "docker",
+    "vm",
+    "virtual-machine",
+    "nas",
+    "homelab",
+    "self-hosted",
+    "graphql",
+    "automation",
+    "server-management",
+    "notifications"
   ],
   "license": "MIT",
   "homepage": "https://github.com/lt-kraken/n8n-nodes-unraid",

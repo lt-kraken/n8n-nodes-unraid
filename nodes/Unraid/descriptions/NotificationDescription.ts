@@ -11,7 +11,7 @@ export const notificationOperations: INodeProperties[] = [
 			{ name: 'Archive',     value: 'archive',    description: 'Archive a notification',       action: 'Archive a notification' },
 			{ name: 'Archive All', value: 'archiveAll', description: 'Archive all notifications',    action: 'Archive all notifications' },
 			{ name: 'Create',      value: 'create',     description: 'Create a notification',        action: 'Create a notification' },
-			{ name: 'Delete',      value: 'delete',     description: 'Delete a notification',        action: 'Delete a notification' },
+			{ name: 'Delete',      value: 'delete',     description: 'Delete a notification (destructive — requires Full control level)', action: 'Delete a notification' },
 			{ name: 'Get Many',    value: 'getMany',    description: 'List notifications',           action: 'List notifications' },
 			{ name: 'Get Overview', value: 'getOverview', description: 'Get unread/archived counts', action: 'Get notification overview' },
 		],
@@ -28,7 +28,7 @@ export const notificationFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['notification'], operation: ['getMany'] } },
 		options: [
 			{ name: 'Unread',   value: 'UNREAD' },
-			{ name: 'Archived', value: 'ARCHIVED' },
+			{ name: 'Archived', value: 'ARCHIVE' },
 			{ name: 'All',      value: 'ALL' },
 		],
 		default: 'UNREAD',
@@ -132,7 +132,7 @@ export const notificationFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['notification'], operation: ['delete'] } },
 		options: [
 			{ name: 'Unread',   value: 'UNREAD' },
-			{ name: 'Archived', value: 'ARCHIVED' },
+			{ name: 'Archived', value: 'ARCHIVE' },
 		],
 		default: 'UNREAD',
 		description: 'Where the notification currently lives',
