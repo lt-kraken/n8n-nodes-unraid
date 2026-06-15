@@ -36,7 +36,11 @@ nodes/Unraid/
 1. Add the GraphQL query/mutation to the relevant file in `queries/`.
 2. Add the operation option and any new fields to the relevant file in `descriptions/`.
 3. Add the execute branch in `Unraid.node.ts` under the correct resource block.
-4. Run `npm run build` and test locally.
+4. **Classify its risk** in `nodes/Unraid/operations.ts`. Anything that changes server
+   state must be listed as `control`, and anything destructive (irreversible or data-losing)
+   as `destructive`. Read-only operations need no entry. This is what gates the operation
+   behind the credential/node control level.
+5. Run `npm run build` and test locally.
 
 ## Adding a New Resource
 
@@ -53,6 +57,15 @@ Follow the same pattern as an existing resource (e.g. `docker`):
 - TypeScript strict mode is enabled — no `any` types.
 - Run `npm run lint` before submitting a PR.
 - Keep GraphQL queries in `queries/` — no inline query strings in the node file.
+
+## Testing
+
+- Run the unit tests with `npm test` (Vitest). CI runs lint, tests, and build on every PR.
+- Add or update tests in `test/` when you change routing or gating behaviour. New
+  state-changing operations should have a test confirming they're blocked below their
+  required control level.
+- For end-to-end changes, work through the relevant section of [`TESTING.md`](./TESTING.md)
+  against a real Unraid server and tick off what you verified in your PR.
 
 ## Submitting a PR
 

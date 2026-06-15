@@ -5,8 +5,11 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 
 import { unraidApiRequest } from './GenericFunctions';
+import type { ControlLevel } from './operations';
+import { getOperationRisk, resolveLevel, isAllowed, requiredLevel } from './operations';
 
 import { arrayOperations, arrayFields } from './descriptions/ArrayDescription';
 import { diskOperations, diskFields } from './descriptions/DiskDescription';
@@ -52,6 +55,32 @@ export class Unraid implements INodeType {
 				],
 				default: 'docker',
 			},
+			{
+				displayName: 'Maximum Control Level',
+				name: 'maxControlLevel',
+				type: 'options',
+				options: [
+					{
+						name: 'Use Credential Default',
+						value: 'credential',
+						description: 'Inherit the limit set on the Unraid credential',
+					},
+					{ name: 'Read', value: 'read', description: 'Read-only: status, lists, and metrics' },
+					{
+						name: 'Control',
+						value: 'control',
+						description: 'Read plus reversible state changes (start/stop/restart/pause, create/archive)',
+					},
+					{
+						name: 'Full',
+						value: 'full',
+						description: 'Control plus destructive operations (stop array, force-stop VM, delete)',
+					},
+				],
+				default: 'credential',
+				description:
+					'Caps what this node may do. It can only narrow below the credential limit, never exceed it. When this node is used as an AI Agent tool, set this to bound what the model can do.',
+			},
 			...arrayOperations,       ...arrayFields,
 			...diskOperations,        ...diskFields,
 			...dockerOperations,      ...dockerFields,
@@ -65,10 +94,29 @@ export class Unraid implements INodeType {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 
+		const credentials = await this.getCredentials('unraidApi');
+		const credLevel = (credentials.maxControlLevel as ControlLevel) ?? 'read';
+
 		for (let i = 0; i < items.length; i++) {
 			try {
 				const resource = this.getNodeParameter('resource', i) as string;
 				const operation = this.getNodeParameter('operation', i) as string;
+
+				// Gate the operation against the effective control level (the lower of the
+				// node's cap and the credential's ceiling) before touching the server.
+				const risk = getOperationRisk(resource, operation);
+				const nodeLevel = this.getNodeParameter('maxControlLevel', i, 'credential') as
+					| ControlLevel
+					| 'credential';
+				const effective = resolveLevel(nodeLevel, credLevel);
+				if (!isAllowed(risk, effective)) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`Operation "${operation}" on "${resource}" requires control level "${requiredLevel(risk)}", but the effective level is "${effective}". Raise "Maximum Control Level" on the Unraid credential (and on the node, if set) to allow it.`,
+						{ itemIndex: i },
+					);
+				}
+
 				let results: IDataObject[] = [];
 
 				// ── Docker ────────────────────────────────────────────────────────────

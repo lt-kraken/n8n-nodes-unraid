@@ -7,7 +7,12 @@ type Params = Record<string, unknown>;
  * Build a minimal IExecuteFunctions stand-in driving a single input item.
  * `http` resolves the GraphQL envelope; tests assert on its captured calls.
  */
-function makeContext(params: Params, http: ReturnType<typeof vi.fn>, continueOnFail = false) {
+function makeContext(
+	params: Params,
+	http: ReturnType<typeof vi.fn>,
+	continueOnFail = false,
+	credLevel = 'full',
+) {
 	return {
 		getInputData: () => [{ json: {} }],
 		getNodeParameter: (name: string, _i: number, fallback?: unknown) =>
@@ -17,15 +22,16 @@ function makeContext(params: Params, http: ReturnType<typeof vi.fn>, continueOnF
 			serverUrl: 'http://unraid.local',
 			apiKey: 'k',
 			allowUnauthorizedCerts: false,
+			maxControlLevel: credLevel,
 		}),
 		getNode: () => ({ name: 'Unraid', type: 'unraid' }),
 		helpers: { httpRequestWithAuthentication: http },
 	};
 }
 
-function run(params: Params, response: unknown, continueOnFail = false) {
+function run(params: Params, response: unknown, continueOnFail = false, credLevel = 'full') {
 	const http = vi.fn().mockResolvedValue(response);
-	const ctx = makeContext(params, http, continueOnFail);
+	const ctx = makeContext(params, http, continueOnFail, credLevel);
 	return { promise: Unraid.prototype.execute.call(ctx as never), http };
 }
 
@@ -139,6 +145,95 @@ describe('Unraid.execute — Notification', () => {
 		);
 		await promise;
 		expect(http.mock.calls[0][1].body.variables.filter.importance).toBe('ALERT');
+	});
+});
+
+describe('Unraid.execute — control level gating', () => {
+	const okDocker = { data: { docker: { start: { id: 'docker:1', state: 'RUNNING' } } } };
+	const okVm = { data: { vm: { forceStop: true } } };
+
+	it('allows a read op at the Read level', async () => {
+		const { promise, http } = run(
+			{ resource: 'docker', operation: 'getMany' },
+			{ data: { docker: { containers: [{ id: 'docker:1' }] } } },
+			false,
+			'read',
+		);
+		const [out] = await promise;
+		expect(out).toHaveLength(1);
+		expect(http).toHaveBeenCalled();
+	});
+
+	it('blocks a control op at the Read level (and never calls the API)', async () => {
+		const { promise, http } = run(
+			{ resource: 'docker', operation: 'start', containerId: 'docker:1' },
+			okDocker,
+			false,
+			'read',
+		);
+		await expect(promise).rejects.toThrow(/requires control level/);
+		expect(http).not.toHaveBeenCalled();
+	});
+
+	it('allows a control op at the Control level', async () => {
+		const { promise } = run(
+			{ resource: 'docker', operation: 'start', containerId: 'docker:1' },
+			okDocker,
+			false,
+			'control',
+		);
+		const [out] = await promise;
+		expect(out[0].json).toEqual({ id: 'docker:1', state: 'RUNNING' });
+	});
+
+	it('blocks a destructive op at the Control level', async () => {
+		const { promise } = run(
+			{ resource: 'vm', operation: 'forceStop', vmId: 'vm:1' },
+			okVm,
+			false,
+			'control',
+		);
+		await expect(promise).rejects.toThrow(/requires control level "full"/);
+	});
+
+	it('allows a destructive op at the Full level', async () => {
+		const { promise } = run(
+			{ resource: 'vm', operation: 'forceStop', vmId: 'vm:1' },
+			okVm,
+			false,
+			'full',
+		);
+		const [out] = await promise;
+		expect(out[0].json).toEqual({ id: 'vm:1', operation: 'forceStop', success: true });
+	});
+
+	it('node level narrows below a Full credential (destructive blocked, control allowed)', async () => {
+		const blocked = run(
+			{ resource: 'vm', operation: 'forceStop', vmId: 'vm:1', maxControlLevel: 'control' },
+			okVm,
+			false,
+			'full',
+		);
+		await expect(blocked.promise).rejects.toThrow(/requires control level/);
+
+		const allowed = run(
+			{ resource: 'docker', operation: 'start', containerId: 'docker:1', maxControlLevel: 'control' },
+			okDocker,
+			false,
+			'full',
+		);
+		const [out] = await allowed.promise;
+		expect(out[0].json).toEqual({ id: 'docker:1', state: 'RUNNING' });
+	});
+
+	it('node level cannot exceed the credential ceiling', async () => {
+		const { promise } = run(
+			{ resource: 'vm', operation: 'forceStop', vmId: 'vm:1', maxControlLevel: 'full' },
+			okVm,
+			false,
+			'control',
+		);
+		await expect(promise).rejects.toThrow(/requires control level/);
 	});
 });
 
