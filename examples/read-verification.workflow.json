@@ -1,0 +1,556 @@
+{
+  "name": "Unraid — Read Verification (self-asserting)",
+  "nodes": [
+    {
+      "id": "trigger",
+      "name": "Run read verification",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "u0",
+      "name": "Array: Get Status",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "array",
+        "operation": "getStatus"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u1",
+      "name": "Array: Get Disks",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "array",
+        "operation": "getDisks"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u2",
+      "name": "Array: Get Shares",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "array",
+        "operation": "getShares"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u3",
+      "name": "Array: Get Parity History",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "array",
+        "operation": "getParityHistory"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u4",
+      "name": "Disk: Get Many",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "disk",
+        "operation": "getMany"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u5",
+      "name": "System: Get Info",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getInfo"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u6",
+      "name": "System: Get Metrics",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getMetrics"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u7",
+      "name": "System: Get Online Status",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getOnlineStatus"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u8",
+      "name": "System: Get UPS Status",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getUpsStatus"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u9",
+      "name": "System: Get Server Status",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getServerStatus"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u10",
+      "name": "System: Get Flash Info",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getFlashInfo"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u11",
+      "name": "System: Get Registration",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getRegistration"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u12",
+      "name": "System: Get Config",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        2912,
+        0
+      ],
+      "parameters": {
+        "resource": "system",
+        "operation": "getConfig"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u13",
+      "name": "VM: Get Many",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        3136,
+        0
+      ],
+      "parameters": {
+        "resource": "vm",
+        "operation": "getMany"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u14",
+      "name": "Docker: Get Many",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        3360,
+        0
+      ],
+      "parameters": {
+        "resource": "docker",
+        "operation": "getMany"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u15",
+      "name": "Docker: Get",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        3584,
+        0
+      ],
+      "parameters": {
+        "resource": "docker",
+        "operation": "get",
+        "containerId": "={{ $('Docker: Get Many').first().json.id }}"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u16",
+      "name": "Notification: Get Many",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        3808,
+        0
+      ],
+      "parameters": {
+        "resource": "notification",
+        "operation": "getMany",
+        "notificationType": "UNREAD",
+        "importance": "",
+        "limit": 50,
+        "offset": 0
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "u17",
+      "name": "Notification: Get Overview",
+      "type": "n8n-nodes-unraid.unraid",
+      "typeVersion": 1,
+      "position": [
+        4032,
+        0
+      ],
+      "parameters": {
+        "resource": "notification",
+        "operation": "getOverview"
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "assert",
+      "name": "Assert read outcomes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4256,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "\nconst results = [];\nconst add = (name, pass, detail, level) => results.push({ name: name, pass: pass, level: level || 'error', detail: detail });\n// alwaysOutputData emits a synthetic {} for truly-empty reads; filter those out so emptiness is detected honestly.\nconst items = (n) => { try { return $(n).all().map((i) => i.json).filter((j) => j && Object.keys(j).length > 0); } catch (e) { return undefined; } };\nconst first = (n) => { const a = items(n); return a && a.length ? a[0] : undefined; };\n\nconst s = first('Array: Get Status');\nadd('Array: Get Status', !!s && typeof s.state === 'string', s ? 'state=' + s.state : 'no data');\n\nconst ad = items('Array: Get Disks');\nadd('Array: Get Disks', Array.isArray(ad) && ad.length > 0 && ad.every((x) => 'status' in x), ad ? ad.length + ' disks' : 'no data');\n\nconst ash = items('Array: Get Shares');\nadd('Array: Get Shares', Array.isArray(ash), ash ? ash.length + ' shares' : 'no data');\n\nconst aph = items('Array: Get Parity History');\nadd('Array: Get Parity History', Array.isArray(aph), aph ? aph.length + ' entries' : 'no data');\n\nconst dk = items('Disk: Get Many');\nadd('Disk: Get Many', Array.isArray(dk) && dk.length > 0 && dk.every((x) => !!x.id), dk ? dk.length + ' disks' : 'no data');\n\nconst si = first('System: Get Info');\nadd('System: Get Info', !!si && /unraid/i.test((si.os && si.os.distro) || '') && !!(si.versions && si.versions.core && si.versions.core.unraid), si ? 'ok' : 'no data');\n\nconst sm = first('System: Get Metrics');\nadd('System: Get Metrics', !!sm && typeof (sm.cpu && sm.cpu.percentTotal) === 'number' && typeof (sm.memory && sm.memory.percentTotal) === 'number', sm ? 'ok' : 'no data');\n\nconst so = first('System: Get Online Status');\nadd('System: Get Online Status', !!so && so.online === true, so ? 'online=' + so.online : 'no data');\n\n// Works whether the node returns a UPS error payload (older) or { connected: false } (newer).\nconst su = first('System: Get UPS Status');\nconst noUps = !!su && (typeof su.error === 'string' || su.connected === false);\nconst hasUps = !!su && !su.error && su.connected !== false;\nadd('System: Get UPS Status', hasUps || noUps, hasUps ? 'UPS present' : (noUps ? 'no UPS attached' : 'unexpected payload'), noUps ? 'warn' : 'error');\n\nconst sv = first('System: Get Server Status');\nadd('System: Get Server Status', !!sv && !!sv.status, sv ? 'status=' + sv.status : 'no data');\n\nconst sf = first('System: Get Flash Info');\nadd('System: Get Flash Info', !!sf && !!sf.vendor, sf ? 'ok' : 'no data');\n\nconst sr = first('System: Get Registration');\nadd('System: Get Registration', !!sr && (!!sr.state || !!sr.type), sr ? 'ok' : 'no data');\n\nconst sc = first('System: Get Config');\nadd('System: Get Config', !!sc && sc.valid === true, sc ? 'valid=' + sc.valid : 'no data');\n\nconst vm = items('VM: Get Many');\nadd('VM: Get Many', Array.isArray(vm), Array.isArray(vm) ? vm.length + ' VMs' : 'no data', (Array.isArray(vm) && vm.length === 0) ? 'warn' : 'error');\n\nconst dm = items('Docker: Get Many');\nadd('Docker: Get Many', Array.isArray(dm) && dm.length > 0, dm ? dm.length + ' containers' : 'no data');\n\nconst want = first('Docker: Get Many');\nconst got = first('Docker: Get');\nadd('Docker: Get (by ID)', !!want && !!got && got.id === want.id, got ? 'matched id' : 'no data');\n\nconst nm = items('Notification: Get Many');\nadd('Notification: Get Many', Array.isArray(nm), nm ? nm.length + ' notifications' : 'no data');\n\nconst ov = first('Notification: Get Overview');\nadd('Notification: Get Overview', !!ov && !!ov.unread && typeof ov.unread.total === 'number', ov && ov.unread ? 'unread=' + ov.unread.total : 'no data');\n\nconst failed = results.filter((r) => !r.pass && r.level === 'error');\nconst warned = results.filter((r) => r.pass && r.level === 'warn');\nconst summary = { success: failed.length === 0, total: results.length, passed: results.filter((r) => r.pass).length, failed: failed.length, warnings: warned.length, checks: results };\nif (failed.length) { throw new Error('Unraid read verification FAILED: ' + failed.length + '/' + results.length + ' checks failed -> ' + failed.map((f) => f.name + ' (' + f.detail + ')').join('; ')); }\nreturn [{ json: summary }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Run read verification": {
+      "main": [
+        [
+          {
+            "node": "Array: Get Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Array: Get Status": {
+      "main": [
+        [
+          {
+            "node": "Array: Get Disks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Array: Get Disks": {
+      "main": [
+        [
+          {
+            "node": "Array: Get Shares",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Array: Get Shares": {
+      "main": [
+        [
+          {
+            "node": "Array: Get Parity History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Array: Get Parity History": {
+      "main": [
+        [
+          {
+            "node": "Disk: Get Many",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Disk: Get Many": {
+      "main": [
+        [
+          {
+            "node": "System: Get Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get Info": {
+      "main": [
+        [
+          {
+            "node": "System: Get Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get Metrics": {
+      "main": [
+        [
+          {
+            "node": "System: Get Online Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get Online Status": {
+      "main": [
+        [
+          {
+            "node": "System: Get UPS Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get UPS Status": {
+      "main": [
+        [
+          {
+            "node": "System: Get Server Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get Server Status": {
+      "main": [
+        [
+          {
+            "node": "System: Get Flash Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get Flash Info": {
+      "main": [
+        [
+          {
+            "node": "System: Get Registration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get Registration": {
+      "main": [
+        [
+          {
+            "node": "System: Get Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System: Get Config": {
+      "main": [
+        [
+          {
+            "node": "VM: Get Many",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VM: Get Many": {
+      "main": [
+        [
+          {
+            "node": "Docker: Get Many",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Docker: Get Many": {
+      "main": [
+        [
+          {
+            "node": "Docker: Get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Docker: Get": {
+      "main": [
+        [
+          {
+            "node": "Notification: Get Many",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notification: Get Many": {
+      "main": [
+        [
+          {
+            "node": "Notification: Get Overview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notification: Get Overview": {
+      "main": [
+        [
+          {
+            "node": "Assert read outcomes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

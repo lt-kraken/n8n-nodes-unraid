@@ -140,8 +140,11 @@ Being honest about what's been verified:
   routing + control-level gating. CI runs lint, tests, and build on every pull request
   (see [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)). Run them yourself with
   `npm test`.
-- **Manual:** [`TESTING.md`](./TESTING.md) is a live checklist of end-to-end scenarios
-  verified against a real Unraid server, including the environment they were verified on.
+- **Manual:** [`TESTING.md`](./TESTING.md) is a checklist of end-to-end scenarios to verify
+  against a real Unraid server.
+- **Importable:** [`examples/read-verification.workflow.json`](./examples/read-verification.workflow.json)
+  is a self-asserting n8n workflow that runs every read operation and checks the actual
+  result of each — import it, point it at your credential, and run it.
 - **Not yet validated:** long-running stability, the full matrix of Unraid versions, and
   live destructive-operation behaviour beyond request-shape tests. Contributions that tick
   more boxes in `TESTING.md` are very welcome.
