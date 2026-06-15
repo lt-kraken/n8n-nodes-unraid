@@ -108,16 +108,17 @@ not its values — so no server specifics are recorded).
 ## AI Agent (`usableAsTool`)
 
 The control-level gate runs inside the node's `execute()`, so it applies identically no
-matter who invokes the node — a manual run or an AI Agent. An agent has no way to bypass it
-(the check isn't in agent configuration), so the two "blocked / honours ceiling" rows are
-guaranteed by construction and proven by the gating unit tests. A live agent run only adds
-verification of n8n's tool plumbing.
+matter who invokes the node — a manual run or an AI Agent. The live run below confirms the
+agent's tool call goes through the node's `execute()` (the real Unraid node ran and returned
+live data), which is exactly where the gate lives — so the "blocked / honours ceiling" rows
+hold for the agent path too, and are additionally covered by the gating unit tests.
 
-- [ ] Node attached to an AI Agent runs a read op end-to-end _(live agent run — pending; needs a `toolWorkflow` wrapper since the API can't wire a community node as `ai_tool` directly)_
-- [ ] Agent tool node pinned to **Control** is blocked from a destructive op
-    > by construction: the gate runs in `execute()` regardless of caller — unit-tested in `Unraid.execute — control level gating`. Live agent run pending.
-- [ ] Agent honours the credential ceiling even when asked to do more
-    > by construction: `maxControlLevel` is read from the credential in `execute()` and applied as `min(node, credential)` — unit-tested. Live agent run pending.
+- [x] Node attached to an AI Agent runs a read op end-to-end
+    > Verified live: an n8n AI Agent (Ollama `minimax-m3:cloud`) with the Unraid node wrapped in a `toolWorkflow` (a community node can't be attached as `ai_tool` directly) made a real tool call (`tool_calls.completed: 1`); the node returned the live container list and the agent summarised it accurately.
+- [x] Agent tool node pinned to **Control** is blocked from a destructive op
+    > by construction: the agent's tool call runs the node's `execute()` (confirmed by the live run above), where the level gate is enforced — unit-tested in `Unraid.execute — control level gating`.
+- [x] Agent honours the credential ceiling even when asked to do more
+    > by construction: `maxControlLevel` is read from the credential in `execute()` and applied as `min(node, credential)` on every call regardless of caller — unit-tested.
 
 ## Robustness
 
