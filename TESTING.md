@@ -81,7 +81,7 @@ not its values — so no server specifics are recorded).
 
 ## Destructive operations (control level: Full — test on disposable targets)
 
-- [ ] Array — Stop — gating verified (blocked below Full; no mutation sent when blocked). Live stop intentionally not run via n8n: on a same-host n8n it stops the n8n container itself (the array stops, but n8n is killed mid-call and can't report completion or start it again). Mutation unchanged since 1.0.1; identical to the Unraid UI Stop button. Intended for remote orchestration or as the final step of a UPS shutdown.
+- [x] Array — Stop — verified live: the array stops **gracefully**. On a same-host n8n the node reports a **504 / gateway timeout** even though the stop succeeds, because the n8n container goes offline before the response returns — so there's no clean success and no follow-up Start in the same workflow. Gating also verified (blocked below Full; no mutation sent when blocked). Identical to the Unraid UI Stop button; intended for remote orchestration or as the final step of a UPS shutdown.
 - [x] VM — Force Stop (on a disposable VM)
 - [x] Notification — Delete
 

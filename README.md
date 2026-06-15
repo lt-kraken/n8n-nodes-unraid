@@ -83,12 +83,13 @@ Start/Stop/Restart/Pause/Unpause require the `Control` level (see [Safety & perm
 | Start              | Start the array _(requires `Control`)_             |
 | Stop               | Stop the array _(destructive — requires `Full`)_   |
 
-> **⚠️ Array Stop runs on a same-host n8n is self-terminating.** Stopping the array shuts
-> down the Docker service, which stops **every container — including the n8n container
-> running the workflow.** The array stops, but n8n is killed mid-call, so it can't report
-> completion or run a follow-up Start; you'd start the array again manually from the Unraid
-> UI. (No data is lost — Stop/Start only unmount/remount the array, identical to the UI
-> buttons.)
+> **⚠️ On a same-host n8n, Array Stop is self-terminating.** Stopping the array shuts down
+> the Docker service, which stops **every container — including the n8n container running
+> the workflow.** The array stops **gracefully**, but n8n goes offline before the response
+> returns, so the node reports a **504 / gateway timeout even though the stop succeeded.**
+> You can't chain a follow-up Start in the same workflow — start the array again from the
+> Unraid UI (the standard recovery). No data is lost: Stop/Start only unmount/remount the
+> array, identical to the UI buttons.
 >
 > **When Array Stop/Start make sense:**
 > - **Remote orchestration** — an n8n instance running *off* the Unraid box (another
